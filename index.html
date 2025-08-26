@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>2D対戦ゲームマップエディタ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>2D対戦ゲームマップエディタ</header>
+
+  <div class="controls">
+    <label>グリッドサイズ（横×縦）
+      <input id="gridSize" type="text" value="15x10" />
+    </label>
+    <label>マスの大きさ(px)
+      <input id="cellSize" type="number" value="40" min="8" />
+    </label>
+    <label>線の太さ(px)
+      <input id="strokeWidth" type="number" value="3" min="1" step="0.5" />
+    </label>
+    <label><input id="showDots" type="checkbox" checked /> 交点を表示</label>
+    <label><input id="borderOn" type="checkbox" checked /> 外周を最初からオン</label>
+    <label><input id="borderLock" type="checkbox" checked /> 外周を固定</label>
+    <div class="buttons">
+      <button id="build">生成</button>
+      <button id="clear">全消去</button>
+      <button id="invert">反転</button>
+      <button id="toggleBorder">外周オン/オフ</button>
+    </div>
+  </div>
+
+  <div id="stage"></div>
+
+  <div class="export">
+    <textarea id="exportBox" readonly></textarea>
+    <button id="download">JSON保存</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
