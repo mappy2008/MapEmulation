@@ -4,12 +4,9 @@
     cellSize: document.getElementById("cellSize"),
     strokeWidth: document.getElementById("strokeWidth"),
     showDots: document.getElementById("showDots"),
-    borderOn: document.getElementById("borderOn"),
-    borderLock: document.getElementById("borderLock"),
     build: document.getElementById("build"),
     clear: document.getElementById("clear"),
     invert: document.getElementById("invert"),
-    toggleBorder: document.getElementById("toggleBorder"),
     stage: document.getElementById("stage"),
     exportBox: document.getElementById("exportBox"),
     download: document.getElementById("download"),
@@ -23,7 +20,6 @@
     svg: null,
     dragging: false,
     dragMode: null,
-    lockBorder: true,
   };
 
   function parseGridSize(text) {
@@ -37,14 +33,11 @@
     const cell = +els.cellSize.value || 40;
     const stroke = +els.strokeWidth.value || 3;
     const showDots = els.showDots.checked;
-    const borderOn = els.borderOn.checked;
-    const borderLock = els.borderLock.checked;
 
     state.cols = cols;
     state.rows = rows;
     state.cell = cell;
     state.stroke = stroke;
-    state.lockBorder = borderLock;
 
     const width = cols * cell;
     const height = rows * cell;
@@ -63,15 +56,24 @@
     for (let r = 0; r <= rows; r++) {
       for (let c = 0; c < cols; c++) {
         const line = makeEdge("h", r, c, c * cell, r * cell, (c + 1) * cell, r * cell);
-        if (borderOn && (r === 0 || r === rows)) setBorder(line, borderLock);
+
+        if (r === 0 || r === rows) {
+          setBorder(line); // 外枠は確定
+        }
+
         gEdges.appendChild(line);
       }
     }
+
     // 垂直線
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c <= cols; c++) {
         const line = makeEdge("v", r, c, c * cell, r * cell, c * cell, (r + 1) * cell);
-        if (borderOn && (c === 0 || c === cols)) setBorder(line, borderLock);
+
+        if (c === 0 || c === cols) {
+          setBorder(line); // 外枠は確定
+        }
+
         gEdges.appendChild(line);
       }
     }
@@ -109,7 +111,7 @@
     line.setAttribute("y2", y2);
 
     line.addEventListener("pointerdown", (e) => {
-      if (line.classList.contains("locked")) return;
+      if (line.classList.contains("locked")) return; // 外枠は編集禁止
       const willOn = !line.classList.contains("active");
       setEdge(line, willOn);
       state.dragging = true;
@@ -135,9 +137,8 @@
     return line;
   }
 
-  function setBorder(line, lock) {
+  function setBorder(line) {
     line.classList.add("active", "locked");
-    if (!lock) line.classList.remove("locked");
   }
 
   function setEdge(line, on) {
@@ -157,7 +158,8 @@
     const V = Array.from({ length: state.rows }, () => Array(state.cols + 1).fill(0));
 
     forEachEdge((line) => {
-      const on = line.classList.contains("active") ? 1 : 0;
+      let on = line.classList.contains("active") ? 1 : 0;
+      if (line.classList.contains("locked")) on = 1; // 外枠は強制的に1
       if (line.dataset.o === "h") H[line.dataset.r][line.dataset.c] = on;
       else V[line.dataset.r][line.dataset.c] = on;
     });
@@ -167,9 +169,7 @@
   }
 
   function stringifyArrays(obj) {
-    // 一旦整形済みJSON（インデント2）で作成
     let str = JSON.stringify(obj, null, 2);
-    // 配列内の改行・空白を削除
     str = str.replace(/\[\s+([0-9,\s]+?)\s+\]/g, (match, p1) => `[${p1.replace(/\s+/g, '')}]`);
     return str;
   }
@@ -179,19 +179,15 @@
   // -------------------
   els.build.addEventListener("click", buildGrid);
   els.clear.addEventListener("click", () => {
-    forEachEdge((line) => setEdge(line, false));
+    forEachEdge((line) => {
+      if (!line.classList.contains("locked")) setEdge(line, false);
+    });
     updateExport();
   });
   els.invert.addEventListener("click", () => {
-    forEachEdge((line) => setEdge(line, !line.classList.contains("active")));
-    updateExport();
-  });
-  els.toggleBorder.addEventListener("click", () => {
-    const borderEdges = [...state.svg.querySelectorAll(".edge")].filter(
-      (l) => l.classList.contains("locked") || l.dataset.r == 0 || l.dataset.c == 0
-    );
-    const allOn = borderEdges.every((l) => l.classList.contains("active"));
-    borderEdges.forEach((l) => setEdge(l, !allOn));
+    forEachEdge((line) => {
+      if (!line.classList.contains("locked")) setEdge(line, !line.classList.contains("active"));
+    });
     updateExport();
   });
   els.download.addEventListener("click", () => {
